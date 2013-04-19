@@ -14,8 +14,6 @@ CODE128
 
 Codabar（NW-7）
 
-QRCode
-
 動作環境
 -------
 Java6 以上（Eclipse プロジェクト）
