@@ -189,6 +189,7 @@ public class Code128 extends Barcode {
 		case C:
 			ret.add(START_C);
 			break;
+		default:
 		}
 		while(_data.length() > 0){
 			switch(this.getNextCodeType(_data, codeType)){
@@ -204,6 +205,7 @@ public class Code128 extends Barcode {
 				ret.add(TO_C);
 				codeType = ECodeType.C;
 				break;
+			default:
 			}
 			switch(codeType){
 			case A:
@@ -218,6 +220,7 @@ public class Code128 extends Barcode {
 				ret.add(this.getCodePointC(_data));
 				_data = _data.substring(2);
 				break;
+			default:
 			}
 		}
 		return ret;
