@@ -17,7 +17,8 @@
 		       verbose="off"
 		       debug="true"
 		       target="1.5"
-		       debuglevel="lines"/>
+		       debuglevel="lines"
+		       includeantruntime="false"/>
 		<copy todir="${class}">
 			<fileset dir="${src}"/>
 		</copy>
