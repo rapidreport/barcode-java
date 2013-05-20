@@ -86,6 +86,80 @@ public class ITF extends Barcode {
 		return sb.toString();
 	}
 
+	public BarContent createContent(Graphics g, int x, int y, int w, int h, String data) {
+		return createContent(g, x, y, w, h, DPI, data);
+	}
+
+	public BarContent createContent(Graphics g, int x, int y, int w, int h, int dpi, String data) {
+		return createContent(g, new Rectangle(x, y, w, h), dpi, data);
+	}
+
+	public BarContent createContent(Graphics g, Rectangle r, String data) {
+		return createContent(g, r, DPI, data);
+	}
+
+	public BarContent createContent(Graphics g, Rectangle r, int dpi, String data) {
+		final float marginX = pointToPixel(dpi, super.marginX);
+		final float marginY = pointToPixel(dpi, super.marginY);
+
+		final float shortBarWidth = mmToPixel(dpi, 1.016f);
+		final float longBarWidth = mmToPixel(dpi, 1.016f * 2.5f);
+
+		float width = marginX;
+		List<Integer[]> codes = encode(data);
+		for (Integer[] code: codes) {
+			for (int c: code) {
+				width += c == 0 ? shortBarWidth : longBarWidth;
+			}
+		}
+
+		final float h = pointToPixel(dpi, r.height) - marginY * 2;
+		final float barHeight = withText ? h * 0.7f : h;
+		final float height = barHeight + marginY;
+
+		final float w = pointToPixel(dpi, r.width) - marginX * 2;
+		if (w <= 0 || h <= 0) {
+			return null;
+		}
+
+		BarContent ret = new BarContent();
+		float xPos = 0;
+		float scale = w / width;
+		for (Integer[] code: codes) {
+			for (int i = 0; i < code.length; i++) {
+				final int c = code[i];
+				float barWidth = c == 0 ? shortBarWidth : longBarWidth;
+				barWidth *= scale;
+				if (i % 2 == 0) {
+					BarContent bc = new BarContent();
+					BarContent.Bar b = bc.new Bar(r.x + xPos + marginX, r.y + marginY, barWidth, barHeight);
+					ret.add(b);
+				}
+				xPos += barWidth;
+			}
+		}
+
+		if (withText) {
+			final String _data = _encode(data);
+
+			final float textHeight = h * 0.2f;
+			final float textWidth = ((w * 0.9f) / _data.length()) * 2.0f;
+			final float fs = max(min(textHeight, textWidth), 6.0f);
+			final Font f = new Font("SansSerif", Font.PLAIN, round(fs));
+
+			FontMetrics fm = g.getFontMetrics(f);
+	        Rectangle _r = fm.getStringBounds(_data, g).getBounds();
+	        final int _xPos = round(w - _r.width) / 2;
+	        final int _x = r.x + _xPos;
+			final int _y = round(r.y + height + fs);
+			BarContent bc = new BarContent();
+			BarContent.Text t = bc.new Text(_data, f, _x, _y);
+			ret.setText(t);
+		}
+
+		return ret;
+	}
+
 	public void render(Graphics g, int x, int y, int w, int h, String data) {
 		render(g, x, y, w, h, DPI, data);
 	}
@@ -99,68 +173,22 @@ public class ITF extends Barcode {
 	}
 
 	public void render(Graphics g, Rectangle r, int dpi, String data) {
-		final float shortBarWidth = mmToPixel(dpi, 1.016f);
-		final float longBarWidth = mmToPixel(dpi, 1.016f * 2.5f);
-
-		float width = marginX;
-		List<Integer[]> codes = encode(data);
-		for (Integer[] code: codes) {
-			for (int c: code) {
-				width += c == 0 ? shortBarWidth : longBarWidth;
-			}
-		}
-
-		final float h = pointToPixel(dpi, r.height - marginY * 2);
-		final float barHeight = withText ? h * 0.7f : h;
-		final float height = barHeight + marginY;
-
-		final float w = pointToPixel(dpi, r.width - marginX * 2);
-		if (w <= 0 || h <= 0) {
+		final BarContent c = createContent(g, r, dpi, data);
+		if (c == null) {
 			return;
 		}
 
-		float xPos = 0;
-		float scale = w / width;
+		g.setColor(Color.BLACK);
 		final Graphics2D g2d = (Graphics2D)g;
-		for (Integer[] code: codes) {
-			for (int i = 0; i < code.length; i++) {
-				final int c = code[i];
-				float barWidth = c == 0 ? shortBarWidth : longBarWidth;
-				barWidth *= scale;
-				if (i % 2 == 0) {
-					g2d.setColor(Color.BLACK);
-				} else {
-					g2d.setColor(Color.WHITE);
-				}
-				Rectangle2D.Float s = new Rectangle2D.Float(r.x + xPos + marginX, r.y + marginY, barWidth, barHeight);
-				g2d.fill(s);
-				xPos += barWidth;
-			}
+		for (BarContent.Bar b: c.getBars()) {
+			Rectangle2D.Float s = new Rectangle2D.Float(b.getX(), b.getY(), b.getWidth(), b.getHeight());
+			g2d.fill(s);
 		}
 
-		if (withText) {
-			final String _data = _encode(data);
-
-			final float textHeight = h * 0.2f;
-			final float textWidth = ((w * 0.9f) / _data.length()) * 2.0f;
-			final float fs = max(min(textHeight, textWidth), 6.0f);
-			final Font f = new Font("SansSerif", Font.PLAIN, round(fs));
-			g.setFont(f);
-
-			FontMetrics fm = g.getFontMetrics();
-	        Rectangle rectText = fm.getStringBounds(_data, g).getBounds();
-	        final int _xPos = round(w - rectText.width) / 2;
-	        final int _x = r.x + _xPos;
-			final int _y = round(r.y + height + fs);
-			g.drawString(_data, _x, _y);
+		final BarContent.Text t = c.getText();
+		if (t != null) {
+			g.setFont(t.getFont());
+			g.drawString(t.getCode(), t.getX(), t.getY());
 		}
-	}
-
-	private float pointToPixel(int dpi, float point) {
-		return dpi * (point / 72.0f);
-	}
-
-	private float mmToPixel(int dpi, float mm) {
-		return dpi * (mm / 25.4f);
 	}
 }

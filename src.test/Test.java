@@ -84,10 +84,11 @@ public class Test {
 			g.fillRect(0, 0, 2000, 3000);
 			{
 	            YubinCustomer b = new YubinCustomer();
-	            b.render(g, 100, 100, 650, 50, 8.0f, 252, "1234567890-");
-                b.render(g, 100, 400, 800, 50, 9.0f, 252, "ABCDEFGHIJKLMNOPQRST");
-                b.render(g, 100, 700, 950, 50, 10.0f, 252, "UVWXYZ");
-                b.render(g, 100, 1000, 1100, 50, 11.5f, 252, "024007315-10-3");
+	            final int dpi = 252;
+	            b.render(g, 100, 100, 650, 50, 8.0f, dpi, "1234567890-");
+                b.render(g, 100, 400, 800, 50, 9.0f, dpi, "ABCDEFGHIJKLMNOPQRST");
+                b.render(g, 100, 700, 950, 50, 10.0f, dpi, "UVWXYZ");
+                b.render(g, 100, 1000, 1100, 50, 11.5f, dpi, "024007315-10-3");
 			}
 			try {
 				ImageIO.write(i, "png", new File("output/test2.png"));

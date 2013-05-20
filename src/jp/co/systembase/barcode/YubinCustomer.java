@@ -143,22 +143,25 @@ public class YubinCustomer extends Barcode {
 		return CODE_CHARS[pos];
 	}
 
-	public void render(Graphics g, int x, int y, int w, int h, float point, String data) {
-		render(g, x, y, w, h, point, DPI, data);
+	public BarContent createContent(int x, int y, int w, int h, float point, String data) {
+		return createContent(x, y, w, h, point, DPI, data);
 	}
 
-	public void render(Graphics g, int x, int y, int w, int h, float point, int dpi, String data) {
-		render(g, new Rectangle(x, y, w, h), point, dpi, data);
+	public BarContent createContent(int x, int y, int w, int h, float point, int dpi, String data) {
+		return createContent(new Rectangle(x, y, w, h), point, dpi, data);
 	}
 
-	public void render(Graphics g, Rectangle r, float point, String data) {
-		render(g, r, point, DPI, data);
+	public BarContent createContent(Rectangle r, float point, String data) {
+		return createContent(r, point, DPI, data);
 	}
 
-	public void render(Graphics g, Rectangle r, float point, int dpi, String data) {
+	public BarContent createContent(Rectangle r, float point, int dpi, String data) {
 		if (point < 8.0f || 11.5f < point) {
 			throw new IllegalArgumentException("illegal point: " + point);
 		}
+
+		final float marginX = pointToPixel(dpi, super.marginX);
+		final float marginY = pointToPixel(dpi, super.marginY);
 
 		final float longBarHeight = mmToPixel(dpi, 3.6f * point / 10.0f);
 		final float timingBarHeight = mmToPixel(dpi, 1.2f * point / 10.0f);
@@ -166,13 +169,12 @@ public class YubinCustomer extends Barcode {
 		final float barWidth = mmToPixel(dpi, 0.6f * point / 10.0f);
 		final float barSpace = mmToPixel(dpi, 0.6f * point / 10.0f);
 
-		float xPos = r.x + marginX * 2;
-		final float yTop = r.y + marginY * 2;
-		final float xMax = r.x + r.width - marginX * 2;
-		final float yMax = r.y + r.height - marginY * 2;
+		float xPos = r.x;
+		final float yTop = r.y;
+		final float xMax = r.x + pointToPixel(dpi, r.width) - marginX * 2;
+		final float yMax = r.y + pointToPixel(dpi, r.height) - marginY * 2;
 
-		final Graphics2D g2d = (Graphics2D)g;
-		g2d.setColor(Color.BLACK);
+		BarContent ret = new BarContent();
 		for (String code: encode(data)) {
 			for (char c: code.toCharArray()) {
 				float yPos = yTop;
@@ -206,14 +208,40 @@ public class YubinCustomer extends Barcode {
 					barHeight = yMax - y;
 				}
 
-				Rectangle2D.Float s = new Rectangle2D.Float(x, y, barWidth, barHeight);
-				g2d.fill(s);
+				BarContent bc = new BarContent();
+				BarContent.Bar b = bc.new Bar(x, y, barWidth, barHeight);
+				ret.add(b);
+
 				xPos = xPos + barWidth + barSpace;
 			}
 		}
+
+		return ret;
 	}
 
-	private float mmToPixel(int dpi, float mm) {
-		return dpi * (mm / 25.4f);
+	public void render(Graphics g, int x, int y, int w, int h, float point, String data) {
+		render(g, x, y, w, h, point, DPI, data);
+	}
+
+	public void render(Graphics g, int x, int y, int w, int h, float point, int dpi, String data) {
+		render(g, new Rectangle(x, y, w, h), point, dpi, data);
+	}
+
+	public void render(Graphics g, Rectangle r, float point, String data) {
+		render(g, r, point, DPI, data);
+	}
+
+	public void render(Graphics g, Rectangle r, float point, int dpi, String data) {
+		final BarContent c = createContent(r, point, dpi, data);
+		if (c == null) {
+			return;
+		}
+
+		g.setColor(Color.BLACK);
+		final Graphics2D g2d = (Graphics2D)g;
+		for (BarContent.Bar b: c.getBars()) {
+			Rectangle2D.Float s = new Rectangle2D.Float(b.getX(), b.getY(), b.getWidth(), b.getHeight());
+			g2d.fill(s);
+		}
 	}
 }
