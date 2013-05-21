@@ -10,7 +10,7 @@ import jp.co.systembase.barcode.Code128;
 import jp.co.systembase.barcode.Code39;
 import jp.co.systembase.barcode.Ean13;
 import jp.co.systembase.barcode.Ean8;
-import jp.co.systembase.barcode.ITF;
+import jp.co.systembase.barcode.Itf;
 import jp.co.systembase.barcode.YubinCustomer;
 
 public class Test {
@@ -64,7 +64,7 @@ public class Test {
 				b.render(g, 700, 2400, 500, 200, ". $/+%");
 			}
 			{
-				ITF b = new ITF();
+				Itf b = new Itf();
 				b.render(g, 1300, 1500, 500, 200, "12345678901231");
 				b.render(g, 1300, 1800, 500, 200, "14901234567891");
 				b.render(g, 1300, 2100, 500, 200, "104901234567893");

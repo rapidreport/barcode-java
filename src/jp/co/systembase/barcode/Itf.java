@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ITF extends Barcode {
+public class Itf extends Barcode {
 
 	private static final Map<Character, Integer[]> CODE_PATTERNS = new HashMap<Character, Integer[]>() {
 		private static final long serialVersionUID = 1L;
