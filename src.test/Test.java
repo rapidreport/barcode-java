@@ -10,6 +10,7 @@ import jp.co.systembase.barcode.Code128;
 import jp.co.systembase.barcode.Code39;
 import jp.co.systembase.barcode.Ean13;
 import jp.co.systembase.barcode.Ean8;
+import jp.co.systembase.barcode.Gs1128;
 import jp.co.systembase.barcode.Itf;
 import jp.co.systembase.barcode.YubinCustomer;
 
@@ -89,6 +90,14 @@ public class Test {
                 b.render(g, 100, 400, 800, 50, 9.0f, dpi, "ABCDEFGHIJKLMNOPQRST");
                 b.render(g, 100, 700, 950, 50, 10.0f, dpi, "UVWXYZ");
                 b.render(g, 100, 1000, 1100, 50, 11.5f, dpi, "024007315-10-3");
+			}
+			{
+	            Gs1128 b = new Gs1128();
+				b.render(g, 1100, 100, 800, 200, "#{00}123456789012345678");
+				b.render(g, 1100, 400, 800, 200, "#{11}ABCDEF#{99}!\"%&'()*+,-./");
+				b.render(g, 1100, 700, 800, 200, "#{01}04912345123459#{10}ABC123");
+				b.withText = false;
+				b.render(g, 1100, 1000, 800, 200, "#{01}04912345123459#{10}ABC123");
 			}
 			try {
 				ImageIO.write(i, "png", new File("output/test2.png"));
