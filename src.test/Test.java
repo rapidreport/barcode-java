@@ -68,9 +68,10 @@ public class Test {
 				Itf b = new Itf();
 				b.render(g, 1300, 1500, 500, 200, "12345678901231");
 				b.render(g, 1300, 1800, 500, 200, "14901234567891");
-				b.render(g, 1300, 2100, 500, 200, "104901234567893");
+				b.generateCheckSum = true;
+				b.render(g, 1300, 2100, 500, 200, "1234567890123");
 				b.withText = false;
-				b.render(g, 1300, 2400, 500, 200, "12345678901231");
+				b.render(g, 1300, 2400, 500, 200, "1234567890123");
 			}
 			try {
 				ImageIO.write(i, "png", new File("output/test.png"));

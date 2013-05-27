@@ -36,6 +36,8 @@ public class Itf extends Barcode {
 	private static final Integer[] START_PATTERN = {0, 0, 0, 0};
 	private static final Integer[] STOP_PATTERN = {1, 0, 0};
 
+	public boolean generateCheckSum = false;
+
 	public List<Integer[]> encode(String data) {
 		if (data == null || data.length() == 0) {
 			return null;
@@ -77,10 +79,38 @@ public class Itf extends Barcode {
 		}
 	}
 
+	private int calcCheckDigit(String data) {
+		if (data.length() % 2 == 0) {
+			throw new IllegalArgumentException("illegal data length: " + data + ", must odd number");
+		}
+
+		int sum = 0;
+		for (int i = data.length() - 1; i >= 0; i--) {
+			int n = data.charAt(i) - 0x30; // - '0'
+			sum += i % 2 != 0 ? n: n * 3;
+		}
+
+		int checkNum = 10;
+		int cd = checkNum - (sum % checkNum);
+		if (cd == checkNum) {
+			cd = 0;
+		}
+
+		return cd;
+	}
+
 	protected String _encode(String data) {
 		StringBuilder sb = new StringBuilder(data);
-		if (sb.length() % 2 != 0) {
-			sb.insert(0, "0");
+		if (generateCheckSum) {
+			if (sb.length() % 2 == 0) {
+				sb.insert(0, "0");
+			}
+			int cd = calcCheckDigit(sb.toString());
+			sb.append(Integer.toString(cd));
+		} else {
+			if (sb.length() % 2 != 0) {
+				sb.insert(0, "0");
+			}
 		}
 		return sb.toString();
 	}
