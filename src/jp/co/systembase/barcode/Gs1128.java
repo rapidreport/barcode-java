@@ -1,14 +1,11 @@
 package jp.co.systembase.barcode;
 
 import static java.lang.Math.*;
+import static jp.co.systembase.barcode.content.Scale.*;
 
-import java.awt.Color;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jp.co.systembase.barcode.content.BarContent;
+import jp.co.systembase.barcode.content.PointScale;
+import jp.co.systembase.barcode.content.Scale;
 
 public class Gs1128 extends Barcode {
 
@@ -141,7 +142,7 @@ public class Gs1128 extends Barcode {
 	private static enum CodeType {
 		A(START_A, SET_A) {
 			@Override
-			public int getCodePoint(String data) {
+			public int codePoint(String data) {
 				int c = data.charAt(0);
 				if (c <= 0x1f){ // <= 'US'
 					return c + 0x40; // + '@'
@@ -152,17 +153,17 @@ public class Gs1128 extends Barcode {
 		},
 		B(START_B, SET_B) {
 			@Override
-			public int getCodePoint(String data) {
+			public int codePoint(String data) {
 				return data.charAt(0) - 0x20; // - 'SP'
 			}
 		},
 		C(START_C, SET_C) {
 			@Override
-			public int getCodePoint(String data) {
+			public int codePoint(String data) {
 				return Integer.parseInt(data.substring(0, 2));
 			}
 			@Override
-			public String getNextData(String data) {
+			public String nextData(String data) {
 				return data.substring(2);
 			}
 		};
@@ -171,14 +172,14 @@ public class Gs1128 extends Barcode {
 
 		private int _codeSetPoint;
 
-		public abstract int getCodePoint(String data);
+		public abstract int codePoint(String data);
 
 		CodeType(int startCodePoint, int codeSetPoint) {
 	        _startCodePoint = startCodePoint;
 	        _codeSetPoint = codeSetPoint;
 	    }
 
-	    public String getNextData(String data) {
+	    public String nextData(String data) {
 	    	return data.substring(1);
 	    }
 
@@ -190,7 +191,7 @@ public class Gs1128 extends Barcode {
 	    	return _codeSetPoint;
 	    }
 
-		public static CodeType getCodeType(String data) {
+		public static CodeType type(String data) {
 			if (data.length() >= 2){
 				if ('0' <= data.charAt(0) && data.charAt(0) <= '9' &&
 					'0' <= data.charAt(1) && data.charAt(1) <= '9') {
@@ -204,8 +205,6 @@ public class Gs1128 extends Barcode {
 	    }
 	}
 
-	private static final int DPI = 72;
-
 	private static final String AI_START_PATTERN = "#\\{";
 	private static final String AI_NUMBER_PATTERN = "[0-9]{2,4}";
 	private static final String AI_END_PATTERN = "\\}";
@@ -214,7 +213,7 @@ public class Gs1128 extends Barcode {
 	private static final Map<String, Integer> FIXED_AI = new HashMap<String, Integer>() {
 		private static final long serialVersionUID = 1L;
 		{
-			put("00", 20);
+			put("00", 20); // fixed ai and data length
 			put("01", 16);
 			put("02", 16);
 			put("03", 16);
@@ -257,13 +256,13 @@ public class Gs1128 extends Barcode {
 		for (String key : codes.keySet()) {
 			String _data = key + codes.get(key);
 			while (_data.length() > 0) {
-				CodeType _type = CodeType.getCodeType(_data);
+				CodeType _type = CodeType.type(_data);
 				if (type != _type) {
 					points.add(_type.getCodeSetPoint());
 					type = _type;
 				}
-				points.add(_type.getCodePoint(_data));
-				_data = _type.getNextData(_data);
+				points.add(_type.codePoint(_data));
+				_data = _type.nextData(_data);
 			}
 			String ai_2 = key.substring(0, 2);
 			if (!FIXED_AI.containsKey(ai_2)) {
@@ -294,21 +293,26 @@ public class Gs1128 extends Barcode {
 	}
 
 	private void validate(String data) {
-		final String _data = data.replaceAll(AI_PATTERN, "");
+		String _data = data.replaceAll(AI_PATTERN, "");
 		for (char c: _data.toCharArray()) {
 			if (CHARS.indexOf(c) < 0) {
-				throw new IllegalArgumentException("illegal data: " + data);
+				throw new IllegalArgumentException("illegal char: " + c + " of data: " + data);
 			}
 		}
-		if (!data.startsWith("#{") || data.endsWith("}")) {
-			throw new IllegalArgumentException("illegal data: " + data);
+
+		if (!data.startsWith("#{")) {
+			throw new IllegalArgumentException("illegal data: " + data + ", must start with \"#{\"");
 		}
+		if (data.endsWith("}")) {
+			throw new IllegalArgumentException("illegal data: " + data + ", don't end with \"}\"");
+		}
+
 		Map<String, String> codes = createCodeMap(data);
 		for (String key: codes.keySet()) {
-			final String ai_2 = key.substring(0, 2);
+			String ai_2 = key.substring(0, 2);
 			if (FIXED_AI.containsKey(ai_2)) {
 				if (FIXED_AI.get(ai_2) != (key.length() + codes.get(key).length())) {
-					throw new IllegalArgumentException("illegal ai length: (" + key + ")");
+					throw new IllegalArgumentException("illegal ai data length: (" + key + ")");
 				}
 			}
 		}
@@ -318,14 +322,16 @@ public class Gs1128 extends Barcode {
 		if (encodeCache.containsKey(data)) {
 			return encodeCache.get(data);
 		}
+
 		Map<String, String> ret = new LinkedHashMap<String, String>();
-		final String codes[] = data.split(AI_PATTERN);
-		final Pattern p = Pattern.compile(AI_START_PATTERN + "(" + AI_NUMBER_PATTERN + ")" + AI_END_PATTERN);
-		final Matcher m = p.matcher(data);
+		String codes[] = data.split(AI_PATTERN);
+		Pattern p = Pattern.compile(AI_START_PATTERN + "(" + AI_NUMBER_PATTERN + ")" + AI_END_PATTERN);
+		Matcher m = p.matcher(data);
 		for (int i = 1; i < codes.length; i++) {
 			m.find();
 			ret.put(m.group(1), codes[i]);
 		}
+
 		if (encodeCache.size() == CACHE_MAX_SIZE) {
 			String key = "";
 			for (String _key: encodeCache.keySet()) {
@@ -343,7 +349,7 @@ public class Gs1128 extends Barcode {
 		for(int i = 1; i < points.size(); i++) {
 			sum += i * points.get(i);
 		}
-		final int checkNum = 103;
+		int checkNum = 103;
 		return sum % checkNum;
 	}
 
@@ -360,10 +366,7 @@ public class Gs1128 extends Barcode {
 	}
 
 	public BarContent createContent(Graphics g, Rectangle r, int dpi, String data) {
-		final float marginX = pointToPixel(dpi, super.marginX);
-		final float marginY = pointToPixel(dpi, super.marginY);
-
-		final float barWidth = mmToPixel(dpi, 0.191f);
+		float barWidth = mmToPixel(dpi, 0.191f);
 
 		float width = 0;
 		List<byte[]> codes = encode(data);
@@ -373,25 +376,27 @@ public class Gs1128 extends Barcode {
 			}
 		}
 
-		final float h = pointToPixel(dpi, r.height) - marginY * 2;
-		final float barHeight = withText ? h * 0.7f : h;
-		final float height = barHeight + marginY;
+		Scale scale = new PointScale(marginX, marginY, r.width, r.height, dpi);
+		float h = scale.pixelHeight();
+		float barHeight = withText ? h * 0.7f : h;
+		float height = barHeight + scale.pixelMarginY();
 
-		final float w = pointToPixel(dpi, r.width) - marginX * 2;
+		float w = scale.pixelWidth();
 		if (w <= 0 || h <= 0) {
 			return null;
 		}
 
 		BarContent ret = new BarContent();
 		float xPos = 0;
-		float scale = (w - marginX) / width;
+		float _scale = (w - scale.pixelMarginX()) / width;
 		for (byte[] code: codes) {
 			for (int i = 0; i < code.length; i++) {
-				final int c = code[i];
-				float _barWidth = barWidth * c * scale;
+				int c = code[i];
+				float _barWidth = barWidth * c * _scale;
 				if (i % 2 == 0) {
-					BarContent bc = new BarContent();
-					BarContent.Bar b = bc.new Bar(r.x + xPos + marginX, r.y + marginY, _barWidth, barHeight);
+					float x = r.x + xPos + scale.pixelMarginX();
+					float y = r.y + scale.pixelMarginY();
+					BarContent.Bar b = BarContent.newBar(x, y, _barWidth, barHeight);
 					ret.add(b);
 				}
 				xPos += _barWidth;
@@ -401,18 +406,12 @@ public class Gs1128 extends Barcode {
 		if (withText) {
 			String _data = _encode(data);
 
-			final float textHeight = h * 0.2f;
-			final float textWidth = ((w * 0.9f) / _data.length()) * 2.0f;
-			final float fs = max(min(textHeight, textWidth), 6.0f);
-			final Font f = new Font("SansSerif", Font.PLAIN, round(fs));
+			int fs = fontSize(w, h, _data);
+			Font f = new Font("SansSerif", Font.PLAIN, fs);
+	        int x = r.x + centerAlign(f, g, w, _data);
+			int y = r.y + round(height) + fs;
 
-			FontMetrics fm = g.getFontMetrics(f);
-	        Rectangle _r = fm.getStringBounds(_data, g).getBounds();
-	        final int _xPos = round(w - _r.width) / 2;
-	        final int _x = r.x + _xPos;
-			final int _y = round(r.y + height + fs);
-			BarContent bc = new BarContent();
-			BarContent.Text t = bc.new Text(_data, f, _x, _y);
+			BarContent.Text t = BarContent.newText(_data, f, x, y);
 			ret.setText(t);
 		}
 
@@ -432,22 +431,7 @@ public class Gs1128 extends Barcode {
 	}
 
 	public void render(Graphics g, Rectangle r, int dpi, String data) {
-		final BarContent c = createContent(g, r, dpi, data);
-		if (c == null) {
-			return;
-		}
-
-		g.setColor(Color.BLACK);
-		final Graphics2D g2d = (Graphics2D)g;
-		for (BarContent.Bar b: c.getBars()) {
-			Rectangle2D.Float s = new Rectangle2D.Float(b.getX(), b.getY(), b.getWidth(), b.getHeight());
-			g2d.fill(s);
-		}
-
-		final BarContent.Text t = c.getText();
-		if (t != null) {
-			g.setFont(t.getFont());
-			g.drawString(t.getCode(), t.getX(), t.getY());
-		}
+		BarContent c = createContent(g, r, dpi, data);
+		c.draw(g);
 	}
 }

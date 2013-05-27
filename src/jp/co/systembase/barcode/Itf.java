@@ -1,18 +1,19 @@
 package jp.co.systembase.barcode;
 
 import static java.lang.Math.*;
+import static jp.co.systembase.barcode.content.Scale.*;
 
-import java.awt.Color;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jp.co.systembase.barcode.content.BarContent;
+import jp.co.systembase.barcode.content.PointScale;
+import jp.co.systembase.barcode.content.Scale;
 
 public class Itf extends Barcode {
 
@@ -35,8 +36,6 @@ public class Itf extends Barcode {
 	private static final Integer[] START_PATTERN = {0, 0, 0, 0};
 	private static final Integer[] STOP_PATTERN = {1, 0, 0};
 
-	private static final int DPI = 72;
-
 	public List<Integer[]> encode(String data) {
 		if (data == null || data.length() == 0) {
 			return null;
@@ -44,15 +43,15 @@ public class Itf extends Barcode {
 
 		validate(data);
 
-		final String _data = _encode(data);
+		String _data = _encode(data);
 
 		List<Integer[]> ret = new ArrayList<Integer[]>();
 		ret.add(START_PATTERN);
 		for (int i = 0; i < _data.length(); i = i + 2) {
-			final char c1 = _data.charAt(i);
-			final char c2 = _data.charAt(i + 1);
-			final Integer[] code1 = CODE_PATTERNS.get(c1);
-			final Integer[] code2 = CODE_PATTERNS.get(c2);
+			char c1 = _data.charAt(i);
+			char c2 = _data.charAt(i + 1);
+			Integer[] code1 = CODE_PATTERNS.get(c1);
+			Integer[] code2 = CODE_PATTERNS.get(c2);
 
 			if (code1.length != code2.length) {
 				throw new IllegalArgumentException("illegal pattern length: " + c1 + " != " + c2);
@@ -72,8 +71,8 @@ public class Itf extends Barcode {
 
 	private void validate(String data) {
 		for (char c: data.toCharArray()) {
-			if (CODE_PATTERNS.get(c) == null) {
-				throw new IllegalArgumentException("illegal data: " + data);
+			if (!CODE_PATTERNS.containsKey(c)) {
+				throw new IllegalArgumentException("illegal char: " + c + " of data: " + data);
 			}
 		}
 	}
@@ -99,13 +98,10 @@ public class Itf extends Barcode {
 	}
 
 	public BarContent createContent(Graphics g, Rectangle r, int dpi, String data) {
-		final float marginX = pointToPixel(dpi, super.marginX);
-		final float marginY = pointToPixel(dpi, super.marginY);
+		float shortBarWidth = mmToPixel(dpi, 1.016f);
+		float longBarWidth = mmToPixel(dpi, 1.016f * 2.5f);
 
-		final float shortBarWidth = mmToPixel(dpi, 1.016f);
-		final float longBarWidth = mmToPixel(dpi, 1.016f * 2.5f);
-
-		float width = marginX;
+		float width = 0;
 		List<Integer[]> codes = encode(data);
 		for (Integer[] code: codes) {
 			for (int c: code) {
@@ -113,26 +109,28 @@ public class Itf extends Barcode {
 			}
 		}
 
-		final float h = pointToPixel(dpi, r.height) - marginY * 2;
-		final float barHeight = withText ? h * 0.7f : h;
-		final float height = barHeight + marginY;
+		Scale scale = new PointScale(marginX, marginY, r.width, r.height, dpi);
+		float h = scale.pixelHeight();
+		float barHeight = withText ? h * 0.7f : h;
+		float height = barHeight + scale.pixelMarginY();
 
-		final float w = pointToPixel(dpi, r.width) - marginX * 2;
+		float w = scale.pixelWidth();
 		if (w <= 0 || h <= 0) {
 			return null;
 		}
 
 		BarContent ret = new BarContent();
 		float xPos = 0;
-		float scale = w / width;
+		float _scale = (w - scale.pixelMarginX()) / width;
 		for (Integer[] code: codes) {
 			for (int i = 0; i < code.length; i++) {
-				final int c = code[i];
+				int c = code[i];
 				float barWidth = c == 0 ? shortBarWidth : longBarWidth;
-				barWidth *= scale;
+				barWidth *= _scale;
 				if (i % 2 == 0) {
-					BarContent bc = new BarContent();
-					BarContent.Bar b = bc.new Bar(r.x + xPos + marginX, r.y + marginY, barWidth, barHeight);
+					float x = r.x + xPos + scale.pixelMarginX();
+					float y = r.y + scale.pixelMarginY();
+					BarContent.Bar b = BarContent.newBar(x, y, barWidth, barHeight);
 					ret.add(b);
 				}
 				xPos += barWidth;
@@ -140,20 +138,14 @@ public class Itf extends Barcode {
 		}
 
 		if (withText) {
-			final String _data = _encode(data);
+			String _data = _encode(data);
 
-			final float textHeight = h * 0.2f;
-			final float textWidth = ((w * 0.9f) / _data.length()) * 2.0f;
-			final float fs = max(min(textHeight, textWidth), 6.0f);
-			final Font f = new Font("SansSerif", Font.PLAIN, round(fs));
+			int fs = fontSize(w, h, _data);
+			Font f = new Font("SansSerif", Font.PLAIN, fs);
+	        int x = r.x + centerAlign(f, g, w, _data);
+			int y = r.y + round(height) + fs;
 
-			FontMetrics fm = g.getFontMetrics(f);
-	        Rectangle _r = fm.getStringBounds(_data, g).getBounds();
-	        final int _xPos = round(w - _r.width) / 2;
-	        final int _x = r.x + _xPos;
-			final int _y = round(r.y + height + fs);
-			BarContent bc = new BarContent();
-			BarContent.Text t = bc.new Text(_data, f, _x, _y);
+			BarContent.Text t = BarContent.newText(_data, f, x, y);
 			ret.setText(t);
 		}
 
@@ -173,22 +165,7 @@ public class Itf extends Barcode {
 	}
 
 	public void render(Graphics g, Rectangle r, int dpi, String data) {
-		final BarContent c = createContent(g, r, dpi, data);
-		if (c == null) {
-			return;
-		}
-
-		g.setColor(Color.BLACK);
-		final Graphics2D g2d = (Graphics2D)g;
-		for (BarContent.Bar b: c.getBars()) {
-			Rectangle2D.Float s = new Rectangle2D.Float(b.getX(), b.getY(), b.getWidth(), b.getHeight());
-			g2d.fill(s);
-		}
-
-		final BarContent.Text t = c.getText();
-		if (t != null) {
-			g.setFont(t.getFont());
-			g.drawString(t.getCode(), t.getX(), t.getY());
-		}
+		BarContent c = createContent(g, r, dpi, data);
+		c.draw(g);
 	}
 }

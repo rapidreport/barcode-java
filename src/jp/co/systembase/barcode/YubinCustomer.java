@@ -1,14 +1,17 @@
 package jp.co.systembase.barcode;
 
-import java.awt.Color;
+import static jp.co.systembase.barcode.content.Scale.*;
+
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jp.co.systembase.barcode.content.BarContent;
+import jp.co.systembase.barcode.content.PointScale;
+import jp.co.systembase.barcode.content.Scale;
 
 public class YubinCustomer extends Barcode {
 
@@ -90,8 +93,6 @@ public class YubinCustomer extends Barcode {
 		}
 	};
 
-	private static final int DPI = 72;
-
 	public List<String> encode(String data){
 		if (data == null || data.length() == 0) {
 			return null;
@@ -108,12 +109,13 @@ public class YubinCustomer extends Barcode {
 			}
 		}
 
-		for (int i = codes.size(); i <= CODE_MAX_SIZE; i++) {
+		for (int i = codes.size() + 1; i <= CODE_MAX_SIZE; i++) {
 			codes.add(CODE_CHARS[14]); // CC4
 		}
 
 		List<String> ret = codes.subList(0, CODE_MAX_SIZE);
-		ret.add(calcCheckDigit(ret));
+		int pos = calcCheckDigit(ret);
+		ret.add(CODE_CHARS[pos]);
 		ret.add(0, START_PATTERN);
 		ret.add(STOP_PATTERN);
 
@@ -122,25 +124,25 @@ public class YubinCustomer extends Barcode {
 
 	private void validate(String data) {
 		for (char c: data.toCharArray()) {
-			if (CODE_PATTERNS.get(c) == null) {
-				throw new IllegalArgumentException("illegal data: " + data);
+			if (!CODE_PATTERNS.containsKey(c)) {
+				throw new IllegalArgumentException("illegal char: " + c + " of data: " + data);
 			}
 		}
 	}
 
-	private String calcCheckDigit(List<String> codes){
+	private int calcCheckDigit(List<String> codes){
 		int sum = 0;
 		for (String s: codes) {
 			sum += CHECK_DIGIT_PATTERNS.get(s);
 		}
 
-		final int checkNum = 19;
+		int checkNum = 19;
 		int pos = checkNum - (sum % checkNum);
 		if (pos == checkNum) {
 			pos = 0;
 		}
 
-		return CODE_CHARS[pos];
+		return pos;
 	}
 
 	public BarContent createContent(int x, int y, int w, int h, float point, String data) {
@@ -157,28 +159,26 @@ public class YubinCustomer extends Barcode {
 
 	public BarContent createContent(Rectangle r, float point, int dpi, String data) {
 		if (point < 8.0f || 11.5f < point) {
-			throw new IllegalArgumentException("illegal point: " + point);
+			throw new IllegalArgumentException("illegal point: " + point + ", point is 8.0 to 11.5");
 		}
 
-		final float marginX = pointToPixel(dpi, super.marginX);
-		final float marginY = pointToPixel(dpi, super.marginY);
+		float longBarHeight = mmToPixel(dpi, 3.6f * point / 10.0f);
+		float timingBarHeight = mmToPixel(dpi, 1.2f * point / 10.0f);
+		float semilongBarHeight = longBarHeight / 2.0f + timingBarHeight / 2.0f;
+		float barWidth = mmToPixel(dpi, 0.6f * point / 10.0f);
+		float barSpace = mmToPixel(dpi, 0.6f * point / 10.0f);
 
-		final float longBarHeight = mmToPixel(dpi, 3.6f * point / 10.0f);
-		final float timingBarHeight = mmToPixel(dpi, 1.2f * point / 10.0f);
-		final float semilongBarHeight = longBarHeight / 2.0f + timingBarHeight / 2.0f;
-		final float barWidth = mmToPixel(dpi, 0.6f * point / 10.0f);
-		final float barSpace = mmToPixel(dpi, 0.6f * point / 10.0f);
-
+		Scale scale = new PointScale(marginX, marginY, r.width, r.height, dpi);
 		float xPos = r.x;
-		final float yTop = r.y;
-		final float xMax = r.x + pointToPixel(dpi, r.width) - marginX * 2;
-		final float yMax = r.y + pointToPixel(dpi, r.height) - marginY * 2;
+		float yTop = r.y;
+		float xMax = r.x + scale.pixelWidth();
+		float yMax = r.y + scale.pixelHeight();
 
 		BarContent ret = new BarContent();
 		for (String code: encode(data)) {
 			for (char c: code.toCharArray()) {
 				float yPos = yTop;
-				float barHeight = 0.0f;
+				float barHeight = 0;
 				switch (c) {
 					case '1':
 						barHeight = longBarHeight;
@@ -198,18 +198,16 @@ public class YubinCustomer extends Barcode {
 						throw new IllegalArgumentException("illegal switch case: " + c);
 				}
 
-				final float x = xPos + marginX;
-				final float y = yPos + marginY;
+				float x = xPos + scale.pixelMarginX();
+				float y = yPos + scale.pixelMarginY();
 				if (x > xMax || y > yMax) {
 					continue;
 				}
-
 				if (y + barHeight > yMax) {
 					barHeight = yMax - y;
 				}
 
-				BarContent bc = new BarContent();
-				BarContent.Bar b = bc.new Bar(x, y, barWidth, barHeight);
+				BarContent.Bar b = BarContent.newBar(x, y, barWidth, barHeight);
 				ret.add(b);
 
 				xPos = xPos + barWidth + barSpace;
@@ -232,16 +230,7 @@ public class YubinCustomer extends Barcode {
 	}
 
 	public void render(Graphics g, Rectangle r, float point, int dpi, String data) {
-		final BarContent c = createContent(r, point, dpi, data);
-		if (c == null) {
-			return;
-		}
-
-		g.setColor(Color.BLACK);
-		final Graphics2D g2d = (Graphics2D)g;
-		for (BarContent.Bar b: c.getBars()) {
-			Rectangle2D.Float s = new Rectangle2D.Float(b.getX(), b.getY(), b.getWidth(), b.getHeight());
-			g2d.fill(s);
-		}
+		BarContent c = createContent(r, point, dpi, data);
+		c.draw(g);
 	}
 }
