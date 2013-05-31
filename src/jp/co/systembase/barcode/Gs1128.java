@@ -139,6 +139,8 @@ public class Gs1128 extends Barcode {
 
 	private static final String CHARS = "!\"%&'()*+,-./0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
+	public boolean isConvenienceFormat = false;
+
 	private static enum CodeType {
 		A(START_A, SET_A) {
 			@Override
@@ -210,10 +212,12 @@ public class Gs1128 extends Barcode {
 	private static final String AI_END_PATTERN = "\\}";
 	private static final String AI_PATTERN = AI_START_PATTERN + AI_NUMBER_PATTERN + AI_END_PATTERN;
 
+	private static final String AI_CONVENIENCE = "91";
+
 	private static final Map<String, Integer> FIXED_AI = new HashMap<String, Integer>() {
 		private static final long serialVersionUID = 1L;
 		{
-			put("00", 20); // fixed ai and data length
+			put("00", 20); // ai number and data length
 			put("01", 16);
 			put("02", 16);
 			put("03", 16);
@@ -235,10 +239,30 @@ public class Gs1128 extends Barcode {
 			put("35", 10);
 			put("36", 10);
 			put("41", 16);
+			put(AI_CONVENIENCE, 44);
 		}
 	};
 
-	private Map<String, Map<String, String>> encodeCache = new LinkedHashMap<String, Map<String,String>>();
+	private class CodeMap {
+
+		private String _ai;
+		private String _data;
+
+		public CodeMap(String ai, String data) {
+			_ai = ai;
+			_data = data;
+		}
+
+		public String getAi() {
+			return _ai;
+		}
+
+		public String getData() {
+			return _data;
+		}
+	}
+
+	private Map<String, List<CodeMap>> codeMapCache = new LinkedHashMap<String, List<CodeMap>>();
 	private static final int CACHE_MAX_SIZE = 10;
 
 	public List<byte[]> encode(String data) {
@@ -248,13 +272,13 @@ public class Gs1128 extends Barcode {
 
 		validate(data);
 
+		List<CodeMap> codes = createCodeMap(data);
 		List<Integer> points = new ArrayList<Integer>();
-		Map<String, String> codes = createCodeMap(data);
 		CodeType type = CodeType.C;
 		points.add(type.getStartCodePoint());
 		points.add(FNC1);
-		for (String key : codes.keySet()) {
-			String _data = key + codes.get(key);
+		for (CodeMap map : codes) {
+			String _data = map.getAi() + map.getData();
 			while (_data.length() > 0) {
 				CodeType _type = CodeType.type(_data);
 				if (type != _type) {
@@ -264,7 +288,7 @@ public class Gs1128 extends Barcode {
 				points.add(_type.codePoint(_data));
 				_data = _type.nextData(_data);
 			}
-			String ai_2 = key.substring(0, 2);
+			String ai_2 = map.getAi().substring(0, 2);
 			if (!FIXED_AI.containsKey(ai_2)) {
 				points.add(FNC1);
 			}
@@ -284,10 +308,17 @@ public class Gs1128 extends Barcode {
 	}
 
 	protected String _encode(String data) {
-		Map<String, String> codes = createCodeMap(data);
+		List<CodeMap> codes = createCodeMap(data);
 		StringBuilder sb = new StringBuilder("");
-		for (String key: codes.keySet()) {
-			sb.append("(" + key + ")" + codes.get(key));
+		for (CodeMap map: codes) {
+			sb.append("(" + map.getAi() + ")" + map.getData());
+		}
+		if (isConvenienceFormat) {
+			sb.insert(10, "-");
+			sb.insert(33, " ");
+			sb.insert(40, "-");
+			sb.insert(42, "-");
+			sb.insert(49, "-");
 		}
 		return sb.toString();
 	}
@@ -307,40 +338,44 @@ public class Gs1128 extends Barcode {
 			throw new IllegalArgumentException("illegal data: " + data + ", don't end with \"}\"");
 		}
 
-		Map<String, String> codes = createCodeMap(data);
-		for (String key: codes.keySet()) {
-			String ai_2 = key.substring(0, 2);
+		List<CodeMap> codes = createCodeMap(data);
+		for (CodeMap map: codes) {
+			String ai_2 = map.getAi().substring(0, 2);
+			if (isConvenienceFormat && !AI_CONVENIENCE.equals(ai_2)) {
+				throw new IllegalArgumentException("illegal ai: (" + map.getAi() + ")");
+			}
 			if (FIXED_AI.containsKey(ai_2)) {
-				if (FIXED_AI.get(ai_2) != (key.length() + codes.get(key).length())) {
-					throw new IllegalArgumentException("illegal ai data length: (" + key + ")");
+				if (FIXED_AI.get(ai_2) != (map.getAi().length() + map.getData().length())) {
+					throw new IllegalArgumentException("illegal ai data length: (" + map.getAi() + ")");
 				}
 			}
 		}
 	}
 
-	protected Map<String, String> createCodeMap(String data) {
-		if (encodeCache.containsKey(data)) {
-			return encodeCache.get(data);
+	protected List<CodeMap> createCodeMap(String data) {
+		if (codeMapCache.containsKey(data)) {
+			return codeMapCache.get(data);
 		}
 
-		Map<String, String> ret = new LinkedHashMap<String, String>();
+		List<CodeMap> ret = new ArrayList<CodeMap>();
 		String codes[] = data.split(AI_PATTERN);
 		Pattern p = Pattern.compile(AI_START_PATTERN + "(" + AI_NUMBER_PATTERN + ")" + AI_END_PATTERN);
 		Matcher m = p.matcher(data);
 		for (int i = 1; i < codes.length; i++) {
 			m.find();
-			ret.put(m.group(1), codes[i]);
+			CodeMap map = new CodeMap(m.group(1), codes[i]);
+			ret.add(map);
 		}
 
-		if (encodeCache.size() == CACHE_MAX_SIZE) {
+		if (codeMapCache.size() == CACHE_MAX_SIZE) {
 			String key = "";
-			for (String _key: encodeCache.keySet()) {
+			for (String _key: codeMapCache.keySet()) {
 				key = _key;
 				break;
 			}
-			encodeCache.remove(key);
+			codeMapCache.remove(key);
 		}
-		encodeCache.put(data, ret);
+		codeMapCache.put(data, ret);
 		return ret;
 	}
 
@@ -354,7 +389,7 @@ public class Gs1128 extends Barcode {
 	}
 
 	public BarContent createContent(Graphics g, int x, int y, int w, int h, String data) {
-		return createContent(g, x, y, w, h, DPI, data);
+		return createContent(g, new Rectangle(x, y, w, h), data);
 	}
 
 	public BarContent createContent(Graphics g, int x, int y, int w, int h, int dpi, String data) {
@@ -367,6 +402,22 @@ public class Gs1128 extends Barcode {
 
 	public BarContent createContent(Graphics g, Rectangle r, int dpi, String data) {
 		float barWidth = mmToPixel(dpi, 0.191f);
+		if (isConvenienceFormat) {
+			switch (dpi) {
+				case 300:
+				case 600:
+					barWidth = mmToPixel(dpi, 0.169f);
+					break;
+				case 400:
+					barWidth = mmToPixel(dpi, 0.190f);
+					break;
+				case 480:
+					barWidth = mmToPixel(dpi, 0.158f);
+					break;
+				default:
+					break;
+			}
+		}
 
 		float width = 0;
 		List<byte[]> codes = encode(data);
@@ -378,8 +429,14 @@ public class Gs1128 extends Barcode {
 
 		Scale scale = new PointScale(marginX, marginY, r.width, r.height, dpi);
 		float h = scale.pixelHeight();
-		float barHeight = withText ? h * 0.7f : h;
-		float height = barHeight + scale.pixelMarginY();
+		float barHeight = h;
+		if (withText) {
+			if (isConvenienceFormat) {
+				barHeight = h * 0.5f;
+			} else {
+				barHeight = h * 0.7f;
+			}
+		}
 
 		float w = scale.pixelWidth();
 		if (w <= 0 || h <= 0) {
@@ -388,7 +445,7 @@ public class Gs1128 extends Barcode {
 
 		BarContent ret = new BarContent();
 		float xPos = 0;
-		float _scale = (w - scale.pixelMarginX()) / width;
+		float _scale = w / width;
 		for (byte[] code: codes) {
 			for (int i = 0; i < code.length; i++) {
 				int c = code[i];
@@ -405,21 +462,26 @@ public class Gs1128 extends Barcode {
 
 		if (withText) {
 			String _data = _encode(data);
+			String[] t = _data.split(" ");
+			String baseText = t[0];
 
-			int fs = fontSize(w, h, _data);
+			int fs = fontSize(w, h, baseText);
 			Font f = new Font("SansSerif", Font.PLAIN, fs);
-	        int x = r.x + centerAlign(f, g, w, _data);
-			int y = r.y + round(height) + fs;
+			int x = r.x + centerAlign(f, g, w, baseText) + round(scale.pixelMarginX());
+			int y = r.y + round(barHeight) + fs + round(scale.pixelMarginY());
 
-			BarContent.Text t = BarContent.newText(_data, f, x, y);
-			ret.setText(t);
+			for (int i = 0; i < t.length; i++) {
+				int _y = y + (fs * i);
+				BarContent.Text _t = BarContent.newText(t[i], f, x, _y);
+				ret.add(_t);
+			}
 		}
 
 		return ret;
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, String data) {
-		render(g, x, y, w, h, DPI, data);
+		render(g, new Rectangle(x, y, w, h), data);
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, int dpi, String data) {

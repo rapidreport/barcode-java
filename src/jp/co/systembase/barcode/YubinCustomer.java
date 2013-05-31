@@ -146,7 +146,7 @@ public class YubinCustomer extends Barcode {
 	}
 
 	public BarContent createContent(int x, int y, int w, int h, float point, String data) {
-		return createContent(x, y, w, h, point, DPI, data);
+		return createContent(new Rectangle(x, y, w, h), point, data);
 	}
 
 	public BarContent createContent(int x, int y, int w, int h, float point, int dpi, String data) {
@@ -218,7 +218,7 @@ public class YubinCustomer extends Barcode {
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, float point, String data) {
-		render(g, x, y, w, h, point, DPI, data);
+		render(g, new Rectangle(x, y, w, h), DPI, data);
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, float point, int dpi, String data) {

@@ -96,9 +96,11 @@ public class Test {
 	            Gs1128 b = new Gs1128();
 				b.render(g, 1100, 100, 800, 200, "#{00}123456789012345678");
 				b.render(g, 1100, 400, 800, 200, "#{11}ABCDEF#{99}!\"%&'()*+,-./");
-				b.render(g, 1100, 700, 800, 200, "#{01}04912345123459#{10}ABC123");
 				b.withText = false;
-				b.render(g, 1100, 1000, 800, 200, "#{01}04912345123459#{10}ABC123");
+				b.render(g, 1100, 700, 800, 200, "#{01}04912345123459#{10}ABC123");
+				b.withText = true;
+				b.isConvenienceFormat = true;
+				b.render(g, 1100, 1000, 800, 200, "#{91}123456789012345678901234567890123456789012");
 			}
 			try {
 				ImageIO.write(i, "png", new File("output/test2.png"));

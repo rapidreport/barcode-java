@@ -26,7 +26,12 @@ public class Barcode {
     public static int centerAlign(Font font, Graphics g, float width, String data) {
     	FontMetrics fm = g.getFontMetrics(font);
         Rectangle r = fm.getStringBounds(data, g).getBounds();
-        int x = (round(width) - r.width) / 2;
-        return x;
+        int x = round(width) - r.width;
+        if (x <= 0) {
+        	return 0;
+        }
+        x /= 2;
+        int margin = 3;
+        return x + margin;
     }
 }

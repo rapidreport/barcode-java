@@ -13,7 +13,7 @@ public class BarContent {
 	private static final BarContent CONTENT = new BarContent();
 
 	private List<Bar> _bars = new ArrayList<Bar>();
-	private Text _text;
+	private List<Text> _text = new ArrayList<Text>();
 
 	public static Bar newBar(float x, float y, float width, float height) {
 		return CONTENT.new Bar(x, y, width, height);
@@ -31,7 +31,7 @@ public class BarContent {
 		return _bars;
 	}
 
-	public Text getText() {
+	public List<Text> getText() {
 		return _text;
 	}
 
@@ -39,12 +39,16 @@ public class BarContent {
 		_bars = bars;
 	}
 
-	public void setText(Text text) {
+	public void setText(List<Text> text) {
 		_text = text;
 	}
 
-	public void add(Bar line) {
-		_bars.add(line);
+	public void add(Bar bar) {
+		_bars.add(bar);
+	}
+
+	public void add(Text text) {
+		_text.add(text);
 	}
 
 	public void draw(Graphics g) {
@@ -68,13 +72,14 @@ public class BarContent {
 		if (getBars() == null || getBars().isEmpty()) {
 			return;
 		}
-		Text t = getText();
-		if (t == null) {
+		if (getText() == null || getText().isEmpty()) {
 			return;
 		}
 		g.setColor(Color.BLACK);
-		g.setFont(t.getFont());
-		g.drawString(t.getCode(), t.getX(), t.getY());
+		for (Text t: getText()) {
+			g.setFont(t.getFont());
+			g.drawString(t.getCode(), t.getX(), t.getY());
+		}
 	}
 
 	public class Bar {

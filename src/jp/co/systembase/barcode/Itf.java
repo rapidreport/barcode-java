@@ -46,7 +46,6 @@ public class Itf extends Barcode {
 		validate(data);
 
 		String _data = _encode(data);
-
 		List<Integer[]> ret = new ArrayList<Integer[]>();
 		ret.add(START_PATTERN);
 		for (int i = 0; i < _data.length(); i = i + 2) {
@@ -116,7 +115,7 @@ public class Itf extends Barcode {
 	}
 
 	public BarContent createContent(Graphics g, int x, int y, int w, int h, String data) {
-		return createContent(g, x, y, w, h, DPI, data);
+		return createContent(g, new Rectangle(x, y, w, h), data);
 	}
 
 	public BarContent createContent(Graphics g, int x, int y, int w, int h, int dpi, String data) {
@@ -142,7 +141,6 @@ public class Itf extends Barcode {
 		Scale scale = new PointScale(marginX, marginY, r.width, r.height, dpi);
 		float h = scale.pixelHeight();
 		float barHeight = withText ? h * 0.7f : h;
-		float height = barHeight + scale.pixelMarginY();
 
 		float w = scale.pixelWidth();
 		if (w <= 0 || h <= 0) {
@@ -151,7 +149,7 @@ public class Itf extends Barcode {
 
 		BarContent ret = new BarContent();
 		float xPos = 0;
-		float _scale = (w - scale.pixelMarginX()) / width;
+		float _scale = w / width;
 		for (Integer[] code: codes) {
 			for (int i = 0; i < code.length; i++) {
 				int c = code[i];
@@ -172,18 +170,18 @@ public class Itf extends Barcode {
 
 			int fs = fontSize(w, h, _data);
 			Font f = new Font("SansSerif", Font.PLAIN, fs);
-	        int x = r.x + centerAlign(f, g, w, _data);
-			int y = r.y + round(height) + fs;
+	        int x = r.x + centerAlign(f, g, w, _data) + round(scale.pixelMarginX());
+			int y = r.y + round(barHeight) + fs + round(scale.pixelMarginY());
 
 			BarContent.Text t = BarContent.newText(_data, f, x, y);
-			ret.setText(t);
+			ret.add(t);
 		}
 
 		return ret;
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, String data) {
-		render(g, x, y, w, h, DPI, data);
+		render(g, new Rectangle(x, y, w, h), data);
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, int dpi, String data) {
