@@ -158,7 +158,7 @@ public class Itf extends Barcode {
 				if (i % 2 == 0) {
 					float x = r.x + xPos + scale.pixelMarginX();
 					float y = r.y + scale.pixelMarginY();
-					BarContent.Bar b = BarContent.newBar(x, y, barWidth, barHeight);
+					BarContent.Bar b = new BarContent.Bar(x, y, barWidth, barHeight);
 					ret.add(b);
 				}
 				xPos += barWidth;
@@ -173,7 +173,7 @@ public class Itf extends Barcode {
 	        int x = r.x + centerAlign(f, g, w, _data) + round(scale.pixelMarginX());
 			int y = r.y + round(barHeight) + fs + round(scale.pixelMarginY());
 
-			BarContent.Text t = BarContent.newText(_data, f, x, y);
+			BarContent.Text t = new BarContent.Text(_data, f, x, y);
 			ret.add(t);
 		}
 

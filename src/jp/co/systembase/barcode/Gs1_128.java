@@ -18,7 +18,7 @@ import jp.co.systembase.barcode.content.BarContent;
 import jp.co.systembase.barcode.content.PointScale;
 import jp.co.systembase.barcode.content.Scale;
 
-public class Gs1128 extends Barcode {
+public class Gs1_128 extends Barcode {
 
 	private static final byte CODE_PATTERNS[][] =
 		{{2, 1, 2, 2, 2, 2},
@@ -139,7 +139,7 @@ public class Gs1128 extends Barcode {
 
 	private static final String CHARS = "!\"%&'()*+,-./0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-	public boolean isConvenienceFormat = false;
+	public boolean conveniFormat = false;
 
 	private static enum CodeType {
 		A(START_A, SET_A) {
@@ -313,7 +313,7 @@ public class Gs1128 extends Barcode {
 		for (CodeMap map: codes) {
 			sb.append("(" + map.getAi() + ")" + map.getData());
 		}
-		if (isConvenienceFormat) {
+		if (conveniFormat) {
 			sb.insert(10, "-");
 			sb.insert(33, " ");
 			sb.insert(40, "-");
@@ -341,7 +341,7 @@ public class Gs1128 extends Barcode {
 		List<CodeMap> codes = createCodeMap(data);
 		for (CodeMap map: codes) {
 			String ai_2 = map.getAi().substring(0, 2);
-			if (isConvenienceFormat && !AI_CONVENIENCE.equals(ai_2)) {
+			if (conveniFormat && !AI_CONVENIENCE.equals(ai_2)) {
 				throw new IllegalArgumentException("illegal ai: (" + map.getAi() + ")");
 			}
 			if (FIXED_AI.containsKey(ai_2)) {
@@ -402,7 +402,7 @@ public class Gs1128 extends Barcode {
 
 	public BarContent createContent(Graphics g, Rectangle r, int dpi, String data) {
 		float barWidth = mmToPixel(dpi, 0.191f);
-		if (isConvenienceFormat) {
+		if (conveniFormat) {
 			switch (dpi) {
 				case 300:
 				case 600:
@@ -431,7 +431,7 @@ public class Gs1128 extends Barcode {
 		float h = scale.pixelHeight();
 		float barHeight = h;
 		if (withText) {
-			if (isConvenienceFormat) {
+			if (conveniFormat) {
 				barHeight = h * 0.5f;
 			} else {
 				barHeight = h * 0.7f;
@@ -453,7 +453,7 @@ public class Gs1128 extends Barcode {
 				if (i % 2 == 0) {
 					float x = r.x + xPos + scale.pixelMarginX();
 					float y = r.y + scale.pixelMarginY();
-					BarContent.Bar b = BarContent.newBar(x, y, _barWidth, barHeight);
+					BarContent.Bar b = new BarContent.Bar(x, y, _barWidth, barHeight);
 					ret.add(b);
 				}
 				xPos += _barWidth;
@@ -472,7 +472,7 @@ public class Gs1128 extends Barcode {
 
 			for (int i = 0; i < t.length; i++) {
 				int _y = y + (fs * i);
-				BarContent.Text _t = BarContent.newText(t[i], f, x, _y);
+				BarContent.Text _t = new BarContent.Text(t[i], f, x, _y);
 				ret.add(_t);
 			}
 		}

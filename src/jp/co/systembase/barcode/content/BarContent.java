@@ -10,22 +10,8 @@ import java.util.List;
 
 public class BarContent {
 
-	private static final BarContent CONTENT = new BarContent();
-
 	private List<Bar> _bars = new ArrayList<Bar>();
 	private List<Text> _text = new ArrayList<Text>();
-
-	public static Bar newBar(float x, float y, float width, float height) {
-		return CONTENT.new Bar(x, y, width, height);
-	}
-
-	public static Bar newBar(Rectangle2D.Float r) {
-		return CONTENT.new Bar(r);
-	}
-
-	public static Text newText(String code, Font font, int x, int y) {
-		return CONTENT.new Text(code, font, x, y);
-	}
 
 	public List<Bar> getBars() {
 		return _bars;
@@ -82,21 +68,21 @@ public class BarContent {
 		}
 	}
 
-	public class Bar {
+	public static class Bar {
 
 		private float _x;
 		private float _y;
 		private float _width;
 		private float _height;
 
-		private Bar(float x, float y, float width, float height) {
+		public Bar(float x, float y, float width, float height) {
 			_x = x;
 			_y = y;
 			_width = width;
 			_height = height;
 		}
 
-		private Bar(Rectangle2D.Float r) {
+		public Bar(Rectangle2D.Float r) {
 			_x = r.x;
 			_y = r.y;
 			_width = r.width;
@@ -136,14 +122,14 @@ public class BarContent {
 		}
 	}
 
-	public class Text {
+	public static class Text {
 
 		private String _code;
 		private Font _font;
 		private int _x;
 		private int _y;
 
-		private Text(String code, Font font, int x, int y) {
+		public Text(String code, Font font, int x, int y) {
 			_code = code;
 			_font = font;
 			_x = x;

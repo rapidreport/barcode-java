@@ -207,7 +207,7 @@ public class YubinCustomer extends Barcode {
 					barHeight = yMax - y;
 				}
 
-				BarContent.Bar b = BarContent.newBar(x, y, barWidth, barHeight);
+				BarContent.Bar b = new BarContent.Bar(x, y, barWidth, barHeight);
 				ret.add(b);
 
 				xPos = xPos + barWidth + barSpace;

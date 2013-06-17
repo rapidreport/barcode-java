@@ -10,7 +10,7 @@ import jp.co.systembase.barcode.Code128;
 import jp.co.systembase.barcode.Code39;
 import jp.co.systembase.barcode.Ean13;
 import jp.co.systembase.barcode.Ean8;
-import jp.co.systembase.barcode.Gs1128;
+import jp.co.systembase.barcode.Gs1_128;
 import jp.co.systembase.barcode.Itf;
 import jp.co.systembase.barcode.YubinCustomer;
 
@@ -23,20 +23,20 @@ public class Test {
 			g.setColor(Color.WHITE);
 			g.fillRect(0, 0, 2000, 3000);
 			{
-	            Ean8 b = new Ean8();
-	            b.render(g, 100, 100, 500, 200, "4901234");
-	            b.render(g, 100, 400, 500, 200, "5678901");
-	            b.render(g, 100, 700, 500, 200, "5678901");
-	            b.withText = false;
-	            b.render(g, 100, 1000, 500, 200, "8888888");
+				Ean8 b = new Ean8();
+				b.render(g, 100, 100, 500, 200, "4901234");
+				b.render(g, 100, 400, 500, 200, "5678901");
+				b.render(g, 100, 700, 500, 200, "5678901");
+				b.withText = false;
+				b.render(g, 100, 1000, 500, 200, "8888888");
 			}
 			{
-	            Ean13 b = new Ean13();
-	            b.render(g, 700, 100, 500, 200, "490123456789");
-	            b.render(g, 700, 400, 500, 200, "192205502800");
-	            b.render(g, 700, 700, 500, 200, "978488337649");
-	            b.withText = false;
-	            b.render(g, 700, 1000, 500, 200, "390123456789");
+				Ean13 b = new Ean13();
+				b.render(g, 700, 100, 500, 200, "490123456789");
+				b.render(g, 700, 400, 500, 200, "192205502800");
+				b.render(g, 700, 700, 500, 200, "978488337649");
+				b.withText = false;
+				b.render(g, 700, 1000, 500, 200, "390123456789");
 			}
 			{
 				Codabar b = new Codabar();
@@ -85,21 +85,21 @@ public class Test {
 			g.setColor(Color.WHITE);
 			g.fillRect(0, 0, 2000, 3000);
 			{
-	            YubinCustomer b = new YubinCustomer();
-	            final int dpi = 252;
-	            b.render(g, 100, 100, 650, 50, 8.0f, dpi, "1234567890-");
-                b.render(g, 100, 400, 800, 50, 9.0f, dpi, "ABCDEFGHIJKLMNOPQRST");
-                b.render(g, 100, 700, 950, 50, 10.0f, dpi, "UVWXYZ");
-                b.render(g, 100, 1000, 1100, 50, 11.5f, dpi, "024007315-10-3");
+				YubinCustomer b = new YubinCustomer();
+				final int dpi = 252;
+				b.render(g, 100, 100, 650, 50, 8.0f, dpi, "1234567890-");
+				b.render(g, 100, 400, 800, 50, 9.0f, dpi, "ABCDEFGHIJKLMNOPQRST");
+				b.render(g, 100, 700, 950, 50, 10.0f, dpi, "UVWXYZ");
+				b.render(g, 100, 1000, 1100, 50, 11.5f, dpi, "024007315-10-3");
 			}
 			{
-	            Gs1128 b = new Gs1128();
+				Gs1_128 b = new Gs1_128();
 				b.render(g, 1100, 100, 800, 200, "#{00}123456789012345678");
 				b.render(g, 1100, 400, 800, 200, "#{11}ABCDEF#{99}!\"%&'()*+,-./");
 				b.withText = false;
 				b.render(g, 1100, 700, 800, 200, "#{01}04912345123459#{10}ABC123");
 				b.withText = true;
-				b.isConvenienceFormat = true;
+				b.conveniFormat = true;
 				b.render(g, 1100, 1000, 800, 200, "#{91}123456789012345678901234567890123456789012");
 			}
 			try {
