@@ -135,6 +135,9 @@ public class Code39 extends Barcode {
 		if (this.withText){
 			_h *= 0.7f;
 		}
+		if (w <= 0 || h <= 0){
+			return;
+		}
 		List<Integer> ps = new ArrayList<Integer>();
 		String _data = data;
 		{

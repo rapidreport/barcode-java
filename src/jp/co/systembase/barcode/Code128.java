@@ -309,6 +309,9 @@ public class Code128 extends Barcode {
 		if (this.withText){
 			_h *= 0.7f;
 		}
+		if (w <= 0 || h <= 0){
+			return;
+		}
 		{
 			this.validation(data);
 			List<Integer> ps = this.getCodePoints(data);

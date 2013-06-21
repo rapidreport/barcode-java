@@ -123,6 +123,9 @@ public class Codabar extends Barcode {
 		if (this.withText){
 			_h *= 0.7f;
 		}
+		if (w <= 0 || h <= 0){
+			return;
+		}
 		List<Integer> ps = this.getCodePoints(data);
 		List<Integer> _ps;
 		String _data = data;
