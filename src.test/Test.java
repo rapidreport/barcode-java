@@ -12,7 +12,7 @@ import jp.co.systembase.barcode.Ean13;
 import jp.co.systembase.barcode.Ean8;
 import jp.co.systembase.barcode.Gs1_128;
 import jp.co.systembase.barcode.Itf;
-import jp.co.systembase.barcode.YubinCustomer;
+import jp.co.systembase.barcode.Yubin;
 
 public class Test {
 
@@ -85,12 +85,11 @@ public class Test {
 			g.setColor(Color.WHITE);
 			g.fillRect(0, 0, 2000, 3000);
 			{
-				YubinCustomer b = new YubinCustomer();
-				final int dpi = 252;
-				b.render(g, 100, 100, 650, 50, 8.0f, dpi, "1234567890-");
-				b.render(g, 100, 400, 800, 50, 9.0f, dpi, "ABCDEFGHIJKLMNOPQRST");
-				b.render(g, 100, 700, 950, 50, 10.0f, dpi, "UVWXYZ");
-				b.render(g, 100, 1000, 1100, 50, 11.5f, dpi, "024007315-10-3");
+				Yubin b = new Yubin();
+				b.render(g, 100, 100, 500, 50, "1234567890-");
+				b.render(g, 100, 400, 650, 50, "ABCDEFGHIJKLMNOPQRST");
+				b.render(g, 100, 700, 800, 50, "UVWXYZ");
+				b.render(g, 100, 1000, 950, 50, "024007315-10-3");
 			}
 			{
 				Gs1_128 b = new Gs1_128();
