@@ -1,37 +1,25 @@
 package jp.co.systembase.barcode;
 
-import static java.lang.Math.*;
-
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Rectangle;
 
 public class Barcode {
 
 	public static float barWidth = 1.0f;
 
-    public float marginX = 2.0f;
-    public float marginY = 2.0f;
+	public float marginX = 2.0f;
+	public float marginY = 2.0f;
 
-    public boolean withText = true;
+	public boolean withText = true;
 
-    public static int fontSize(float width, float heigth, String data) {
-    	float _width = ((width * 0.9f) / data.length()) * 2.0f;
-    	float _heigth = heigth * 0.2f;
-		int fs = round(max(min(_width, _heigth), 6.0f));
+	public float fontSize(String txt, float w, float h) {
+		float fs = h * 0.2f;
+		fs = Math.min(fs, ((w * 0.9f) / txt.length()) * 2.0f);
+		fs = Math.max(fs, 6.0f);
 		return fs;
-    }
+	}
 
-    public static int centerAlign(Font font, Graphics g, float width, String data) {
-    	FontMetrics fm = g.getFontMetrics(font);
-        Rectangle r = fm.getStringBounds(data, g).getBounds();
-        int x = round(width) - r.width;
-        if (x <= 0) {
-        	return 0;
-        }
-        x /= 2;
-        int margin = 3;
-        return x + margin;
-    }
+	public Font getFont(String txt, float w, float h){
+		return new Font("SansSerif", Font.PLAIN, (int)fontSize(txt, w, h));
+	}
+
 }

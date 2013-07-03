@@ -61,22 +61,7 @@ public class Code39 extends Barcode {
 	public boolean generateCheckSum = false;
 	public boolean withCheckSumText = false;
 
-	public Byte[] encode(String data){
-		if (data == null || data.length() == 0){
-			return null;
-		}
-		List<Integer> ps = new ArrayList<Integer>();
-		ps.add(START_STOP_POINT);
-		List<Integer> _ps = this.getCodePoints(data);
-		ps.addAll(_ps);
-		if (this.generateCheckSum){
-			ps.add(this.calcCheckDigit(_ps));
-		}
-		ps.add(START_STOP_POINT);
-		return _encode(ps);
-	}
-
-	protected Byte[] _encode(List<Integer> ps){
+	public Byte[] encode(List<Integer> ps){
 		List<Byte> ret = new ArrayList<Byte>();
 		for(int p: ps){
 			this.addCodes(ret, p);
@@ -84,7 +69,37 @@ public class Code39 extends Barcode {
 		return ret.toArray(new Byte[0]);
 	}
 
-	protected void addCodes(List<Byte> l, int p){
+	public List<Integer> getCodePoints(String data){
+		List<Integer> ret = new ArrayList<Integer>();
+		for(int i = 0;i < data.length();i++){
+			char c = data.charAt(i);
+			int p = CHARS.indexOf(c);
+			if (p >= 0){
+				ret.add(p);
+			}else{
+				throw new IllegalArgumentException("(code39)不正なデータです: " + data);
+			}
+		}
+		return ret;
+	}
+
+	public int calcCheckDigit(List<Integer> ps){
+		int s = 0;
+		for(int p: ps){
+			s += p;
+		}
+		return s % 43;
+	}
+
+	public void addStartStopPoint(List<Integer> codePoints){
+		codePoints.add(START_STOP_POINT);
+	}
+
+	public String addStartStopText(String txt){
+		return "*" + txt + "*";
+	}
+
+	private void addCodes(List<Byte> l, int p){
 		if (l.size() > 0){
 			l.add((byte)0);
 		}
@@ -97,28 +112,6 @@ public class Code39 extends Barcode {
 		l.add(CODE_PATTERNS[p][6]);
 		l.add(CODE_PATTERNS[p][7]);
 		l.add(CODE_PATTERNS[p][8]);
-	}
-
-	private List<Integer> getCodePoints(String data){
-		List<Integer> ret = new ArrayList<Integer>();
-		for(int i = 0;i < data.length();i++){
-			char c = data.charAt(i);
-			int p = CHARS.indexOf(c);
-			if (p >= 0){
-				ret.add(p);
-			}else{
-				throw new IllegalArgumentException("illegal data: " + data);
-			}
-		}
-		return ret;
-	}
-
-	private int calcCheckDigit(List<Integer> ps){
-		int s = 0;
-		for(int p: ps){
-			s += p;
-		}
-		return s % 43;
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, String data){
@@ -139,22 +132,22 @@ public class Code39 extends Barcode {
 			return;
 		}
 		List<Integer> ps = new ArrayList<Integer>();
-		String _data = data;
+		String txt = data;
 		{
-			ps.add(START_STOP_POINT);
+			this.addStartStopPoint(ps);
 			List<Integer> _ps = this.getCodePoints(data);
 			ps.addAll(_ps);
 			if (this.generateCheckSum){
 				int cd = this.calcCheckDigit(_ps);
 				ps.add(cd);
 				if (this.withCheckSumText){
-				_data += CHARS.charAt(cd);
+					txt += CHARS.charAt(cd);
 				}
 			}
 			ps.add(START_STOP_POINT);
-			_data = "*" + _data + "*";
+			txt = this.addStartStopText(txt);
 		}
-		Byte cs[] = this._encode(ps);
+		Byte cs[] = this.encode(ps);
 		float mw = w / (ps.size() * 13 - 1);
 		boolean draw = true;
 		float x = this.marginX;
@@ -170,14 +163,11 @@ public class Code39 extends Barcode {
 			x += dw;
 		}
 		if (this.withText){
-			float fs = h * 0.2f;
-			fs = Math.min(fs, ((w * 0.9f) / data.length()) * 2.0f);
-			fs = Math.max(fs, 6.0f);
-			Font f = new Font("SansSerif", Font.PLAIN, (int)fs);
+			Font f = this.getFont(txt, w, h);
 			g.setFont(f);
-			g.drawString(_data,
-					(int)(r.x + (r.width - fs * _data.length() / 2) / 2),
-					(int)(r.y + _h + this.marginY + fs));
+			g.drawString(txt,
+					(int)(r.x + (r.width - f.getSize() * txt.length() / 2) / 2),
+					(int)(r.y + _h + this.marginY + f.getSize()));
 		}
 	}
 

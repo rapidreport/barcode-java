@@ -21,7 +21,7 @@ public class Ean extends Barcode {
 	protected static final byte STOP_PATTERN[] = {1, 1, 1};
 	protected static final byte CENTER_PATTERN[] = {1, 1, 1, 1, 1};
 
-	protected byte calcCheckDigit(String data){
+	public byte calcCheckDigit(String data){
       return this.calcCheckDigit(this.pack(data));
 	}
 

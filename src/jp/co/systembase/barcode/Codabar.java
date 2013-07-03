@@ -38,32 +38,63 @@ public class Codabar extends Barcode {
 	public boolean withCheckSumText = false;
 	public boolean withStartStopText = false;
 
-	public Byte[] encode(String data){
-		if (data == null || data.length() == 0){
-			return null;
-		}
-		List<Integer> ps = this.getCodePoints(data);
-		List<Integer> _ps;
-		if (generateCheckSum){
-			_ps = new ArrayList<Integer>();
-			_ps.addAll(ps.subList(0,  ps.size() - 1));
-			_ps.add(this.calcCheckDigit(ps));
-			_ps.add(ps.get(ps.size() - 1));
-		}else{
-			_ps = ps;
-		}
-		return _encode(_ps);
-	}
-
-	protected Byte[] _encode(List<Integer> ps){
+	public Byte[] _encode(List<Integer> codePoints){
 		List<Byte> ret = new ArrayList<Byte>();
-		for(int p: ps){
+		for(int p: codePoints){
 			this.addCodes(ret, p);
 		}
 		return ret.toArray(new Byte[0]);
 	}
 
-	protected void addCodes(List<Byte> l, int p){
+	public List<Integer> getCodePoints(String data){
+		List<Integer> ret = new ArrayList<Integer>();
+		for(int i = 0;i < data.length();i++){
+			int p = CHARS.indexOf(data.toUpperCase().charAt(i));
+			if (p >= 0){
+				if (i == 0 || i == data.length() - 1){
+					if (p < START_STOP_POINT){
+						throw new IllegalArgumentException("(codabar)スタート/ストップ文字が含まれていません: " + data);
+					}
+				}else{
+					if (p >= START_STOP_POINT){
+						throw new IllegalArgumentException("(codabar)不正なデータです: " + data);
+					}
+				}
+			}else{
+				throw new IllegalArgumentException("(codabar)不正なデータです: " + data);
+			}
+			ret.add(p);
+		}
+        if (ret.size() < 2){
+        	throw new IllegalArgumentException("(codabar)不正なデータです: " + data);
+        }
+        return ret;
+	}
+
+	public int calcCheckDigit(List<Integer> ps){
+		int s = 0;
+		for(int p: ps){
+			s += p;
+		}
+        return (16 - (s % 16)) % 16;
+	}
+
+	public void addCheckDigit(List<Integer> codePoints, int cd){
+		codePoints.add(codePoints.size() - 1, cd);
+	}
+
+	public String addCheckDigit(String txt, int cd){
+		String ret = txt.substring(0, txt.length() - 1);
+		ret += CHARS.charAt(cd);
+		ret += txt.substring(txt.length() - 1);
+		return ret;
+	}
+
+	public String trimStartStopText(String txt){
+		return txt.substring(1, txt.length() - 2);
+	}
+
+	private void addCodes(List<Byte> l, int p){
 		if (l.size() > 0){
 			l.add((byte)0);
 		}
@@ -74,39 +105,6 @@ public class Codabar extends Barcode {
 		l.add(CODE_PATTERNS[p][4]);
 		l.add(CODE_PATTERNS[p][5]);
 		l.add(CODE_PATTERNS[p][6]);
-	}
-
-	private List<Integer> getCodePoints(String data){
-		List<Integer> ret = new ArrayList<Integer>();
-		for(int i = 0;i < data.length();i++){
-			int p = CHARS.indexOf(data.toUpperCase().charAt(i));
-			if (p >= 0){
-				if (i == 0 || i == data.length() - 1){
-					if (p < START_STOP_POINT){
-						throw new IllegalArgumentException("illegal data: " + data);
-					}
-				}else{
-					if (p >= START_STOP_POINT){
-						throw new IllegalArgumentException("illegal data: " + data);
-					}
-				}
-			}else{
-				throw new IllegalArgumentException("illegal data: " + data);
-			}
-			ret.add(p);
-		}
-        if (ret.size() < 2){
-        	throw new IllegalArgumentException("illegal data: " + data);
-        }
-        return ret;
-	}
-
-	private int calcCheckDigit(List<Integer> ps){
-		int s = 0;
-		for(int p: ps){
-			s += p;
-		}
-        return (16 - (s % 16)) % 16;
 	}
 
 	public void render(Graphics g, int x, int y, int w, int h, String data){
@@ -127,26 +125,18 @@ public class Codabar extends Barcode {
 			return;
 		}
 		List<Integer> ps = this.getCodePoints(data);
-		List<Integer> _ps;
-		String _data = data;
+		String txt = data;
 		if (this.generateCheckSum){
 			int cd = this.calcCheckDigit(ps);
-			_ps = new ArrayList<Integer>();
-			_ps.addAll(ps.subList(0, ps.size() - 1));
-			_ps.add(cd);
-			_ps.add(ps.get(ps.size() - 1));
+			this.addCheckDigit(ps, cd);
 			if (this.withCheckSumText){
-				_data = data.substring(0, data.length() - 1);
-				_data += CHARS.charAt(cd);
-				_data += data.substring(data.length() - 1);
+				txt = this.addCheckDigit(txt, cd);
 			}
-		}else{
-			_ps = ps;
 		}
 		if (!this.withStartStopText){
-			_data = _data.substring(1, _data.length() - 1);
+			txt = this.trimStartStopText(txt);
 		}
-		Byte cs[] = this._encode(_ps);
+		Byte cs[] = this._encode(ps);
 		float mw;
 		{
 			int l = 0;
@@ -169,14 +159,11 @@ public class Codabar extends Barcode {
             x += dw;
         }
         if (this.withText){
-            float fs = h * 0.2f;
-			fs = Math.min(fs, ((w * 0.9f) / data.length()) * 2.0f);
-			fs = Math.max(fs, 6.0f);
-            Font f = new Font("SansSerif", Font.PLAIN, (int)fs);
+            Font f = this.getFont(txt, w, h);
 			g.setFont(f);
-			g.drawString(_data,
-					(int)(r.x + (r.width - fs * _data.length() / 2) / 2),
-					(int)(r.y + _h + this.marginY + fs));
+			g.drawString(txt,
+					(int)(r.x + (r.width - f.getSize() * txt.length() / 2) / 2),
+					(int)(r.y + _h + this.marginY + f.getSize()));
         }
 	}
 

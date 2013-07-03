@@ -120,40 +120,94 @@ public class Code128 extends Barcode {
 	private static final byte[] STOP_PATTERN = {2, 3, 3, 1, 1, 1, 2};
 	private static final int TO_C = 99;
 	private static final int TO_B  = 100;
-	private  static final int TO_A = 101;
-	private  static final int START_A = 103;
-	private  static final int START_B = 104;
-	private  static final int START_C = 105;
+	private static final int TO_A = 101;
+	private static final int FNC_1 = 102;
+	private static final int START_A = 103;
+	private static final int START_B = 104;
+	private static final int START_C = 105;
 
-	private enum ECodeType{
+	public enum ECodeType{
 		NO_CHANGE,
 		A,
 		B,
 		C
 	}
+	
+	public boolean parseFnc1 = false;
 
-	public Byte[] encode(String data){
-		if (data == null || data.length() == 0){
-			return null;
-		}
-		this.validation(data);
-		List<Integer> ps = this.getCodePoints(data);
+	public Byte[] encode(List<Integer> codePoints){
 		List<Byte> cs = new ArrayList<Byte>();
-		for(int p: ps){
+		for(int p: codePoints){
 			this.addCodes(cs, p);
 		}
-		this.addCodes(cs, this.calcCheckDigit(ps));
+		this.addCodes(cs, this.calcCheckDigit(codePoints));
 		this.addStopCodes(cs);
 		return cs.toArray(new Byte[0]);
 	}
 
-	private void validation(String data){
+	public void validate(String data){
 		for(int i = 0;i < data.length();i++){
 			char c = data.charAt(i);
 			if (c > 0x7f){
-				throw new IllegalArgumentException("illegal data: " + data);
+				throw new IllegalArgumentException("(code128)不正なデータです: " + data);
 			}
 		}
+	}
+
+	public List<Integer> getCodePoints(String data, ECodeType startCodeType){
+		List<Integer> ret = new ArrayList<Integer>();
+		String _data = data;
+		ECodeType codeType = startCodeType;
+		switch(codeType){
+		case A:
+			ret.add(START_A);
+			break;
+		case B:
+			ret.add(START_B);
+			break;
+		case C:
+			ret.add(START_C);
+			break;
+		default:
+		}
+		while(_data.length() > 0){
+			if (this.parseFnc1 && _data.startsWith("{1}")){
+				ret.add(FNC_1);
+				_data = _data.substring(3);
+			}else{
+				switch(this.getNextCodeType(_data, codeType)){
+				case A:
+					ret.add(TO_A);
+					codeType = ECodeType.A;
+					break;
+				case B:
+					ret.add(TO_B);
+					codeType = ECodeType.B;
+					break;
+				case C:
+					ret.add(TO_C);
+					codeType = ECodeType.C;
+					break;
+				default:
+				}
+				switch(codeType){
+				case A:
+					ret.add(this.getCodePointA(_data));
+					_data = _data.substring(1);
+					break;
+				case B:
+					ret.add(this.getCodePointB(_data));
+					_data = _data.substring(1);
+					break;
+				case C:
+					ret.add(this.getCodePointC(_data));
+					_data = _data.substring(2);
+					break;
+				default:
+				}
+			}
+		}
+		return ret;
 	}
 
 	private void addCodes(List<Byte> l, int p){
@@ -173,57 +227,6 @@ public class Code128 extends Barcode {
 		l.add(STOP_PATTERN[4]);
 		l.add(STOP_PATTERN[5]);
 		l.add(STOP_PATTERN[6]);
-	}
-
-	private List<Integer> getCodePoints(String data){
-		List<Integer> ret = new ArrayList<Integer>();
-		String _data = data;
-		ECodeType codeType = this.getStartCodeType(data);
-		switch(codeType){
-		case A:
-			ret.add(START_A);
-			break;
-		case B:
-			ret.add(START_B);
-			break;
-		case C:
-			ret.add(START_C);
-			break;
-		default:
-		}
-		while(_data.length() > 0){
-			switch(this.getNextCodeType(_data, codeType)){
-			case A:
-				ret.add(TO_A);
-				codeType = ECodeType.A;
-				break;
-			case B:
-				ret.add(TO_B);
-				codeType = ECodeType.B;
-				break;
-			case C:
-				ret.add(TO_C);
-				codeType = ECodeType.C;
-				break;
-			default:
-			}
-			switch(codeType){
-			case A:
-				ret.add(this.getCodePointA(_data));
-				_data = _data.substring(1);
-				break;
-			case B:
-				ret.add(this.getCodePointB(_data));
-				_data = _data.substring(1);
-				break;
-			case C:
-				ret.add(this.getCodePointC(_data));
-				_data = _data.substring(2);
-				break;
-			default:
-			}
-		}
-		return ret;
 	}
 
 	private ECodeType getStartCodeType(String data){
@@ -312,39 +315,42 @@ public class Code128 extends Barcode {
 		if (w <= 0 || h <= 0){
 			return;
 		}
-		{
-			this.validation(data);
-			List<Integer> ps = this.getCodePoints(data);
-			List<Byte> cs = new ArrayList<Byte>();
-			for(int p: ps){
-				this.addCodes(cs, p);
-			}
-			this.addCodes(cs, this.calcCheckDigit(ps));
-			this.addStopCodes(cs);
-			float mw = w / ((ps.size() + 1) * 11 + 13);
-			boolean draw = true;
-			float x = this.marginX;
-			g.setColor(Color.BLACK);
-			for(byte c: cs){
-				float dw = c * mw;
-				if (draw){
-					g.fillRect(
-							(int)(r.x + x), (int)(r.y + this.marginY),
-							(int)(dw * barWidth), (int)_h);
-				}
-				draw = !draw;
-				x += dw;
-			}
-		}
+		this.validate(data);
+		this.renderBars(
+				g, 
+				this.getCodePoints(data, this.getStartCodeType(data)),
+				r.x + this.marginX, 
+				r.y + this.marginY,
+				w, 
+				_h);
 		if (this.withText){
-			float fs = h * 0.2f;
-			fs = Math.min(fs, ((w * 0.9f) / data.length()) * 2.0f);
-			fs = Math.max(fs, 6.0f);
-			Font f = new Font("SansSerif", Font.PLAIN, (int)fs);
+			Font f = this.getFont(data, w, h);
 			g.setFont(f);
 			g.drawString(data,
-					(int)(r.x + (r.width - fs * data.length() / 2) / 2),
-					(int)(r.y + _h + this.marginY + fs));
+					(int)(r.x + (r.width - f.getSize() * data.length() / 2) / 2),
+					(int)(r.y + _h + this.marginY + f.getSize()));
 		}
 	}
+
+	protected void renderBars(
+			Graphics g, 
+			List<Integer> codePoints,
+			float x,
+			float y,
+			float w,
+			float h){
+		float mw = w / ((codePoints.size() + 1) * 11 + 13);
+		boolean draw = true;
+		float _x = 0;
+		g.setColor(Color.BLACK);
+		for(byte c: this.encode(codePoints)){
+			float dw = c * mw;
+			if (draw){
+				g.fillRect((int)(x + _x), (int)y, (int)(dw * barWidth), (int)h);
+			}
+			draw = !draw;
+			x += dw;
+		}
+	}
+
 }
