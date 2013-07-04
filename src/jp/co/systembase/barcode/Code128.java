@@ -324,7 +324,7 @@ public class Code128 extends Barcode {
 				w, 
 				_h);
 		if (this.withText){
-			Font f = this.getFont(data, w, h);
+			Font f = this.getFont(this.getFontSize(data, w, h));
 			g.setFont(f);
 			g.drawString(data,
 					(int)(r.x + (r.width - f.getSize() * data.length() / 2) / 2),

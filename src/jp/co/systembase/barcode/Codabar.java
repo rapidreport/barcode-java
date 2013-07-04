@@ -159,7 +159,7 @@ public class Codabar extends Barcode {
             x += dw;
         }
         if (this.withText){
-            Font f = this.getFont(txt, w, h);
+            Font f = this.getFont(this.getFontSize(txt, w, h));
 			g.setFont(f);
 			g.drawString(txt,
 					(int)(r.x + (r.width - f.getSize() * txt.length() / 2) / 2),

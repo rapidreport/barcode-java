@@ -48,7 +48,7 @@ public class Gs1_128 extends Code128 {
 				String t = this.conveniDisplayFormat(_data);
 				String t1 = t.substring(0, 33);
 				String t2 = t.substring(33);
-				Font f = this.getFont(t1, w, h);
+				Font f = this.getFont(this.getFontSize(t1, w, h));
 				g.setFont(f);
 				g.drawString(t1,
 						(int)(r.x + this.marginX),
@@ -58,7 +58,7 @@ public class Gs1_128 extends Code128 {
 						(int)(r.y + _h + this.marginY + f.getSize() * 2));
 			}else{
 				String t = this.displayFormat(_data);
-				Font f = this.getFont(t, w, h);
+				Font f = this.getFont(this.getFontSize(t, w, h));
 				g.setFont(f);
 				g.drawString(t,
 						(int)(r.x + (r.width - f.getSize() * t.length() / 2) / 2),

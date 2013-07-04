@@ -92,7 +92,7 @@ public class Ean8 extends Ean {
 			x += dw;
 		}
 		if (this.withText){
-			Font f = this.getFont("00000000", w, h);
+			Font f = this.getFont(this.getFontSize("00000000", w, h));
 			g.setFont(f);
 			for(int i = 0;i < 8;i++){
 				g.drawString(_data.get(i).toString(),

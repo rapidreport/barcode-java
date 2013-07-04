@@ -101,7 +101,7 @@ public class Ean13 extends Ean {
 			x += dw;
 		}
 		if (this.withText){
-			Font f = this.getFont("0000000000000", w, h);
+			Font f = this.getFont(this.getFontSize("0000000000000", w, h));
 			g.setFont(f);
 			for(int i = 0;i < 13;i++){
 				g.drawString(_data.get(i).toString(),

@@ -11,15 +11,15 @@ public class Barcode {
 
 	public boolean withText = true;
 
-	public float fontSize(String txt, float w, float h) {
+	public float getFontSize(String txt, float w, float h) {
 		float fs = h * 0.2f;
 		fs = Math.min(fs, ((w * 0.9f) / txt.length()) * 2.0f);
 		fs = Math.max(fs, 6.0f);
 		return fs;
 	}
 
-	public Font getFont(String txt, float w, float h){
-		return new Font("SansSerif", Font.PLAIN, (int)fontSize(txt, w, h));
+	public Font getFont(float fontSize){
+		return new Font("SansSerif", Font.PLAIN, (int)fontSize);
 	}
 
 }
