@@ -154,6 +154,10 @@ public class Code128 extends Barcode {
 		}
 	}
 
+	public List<Integer> getCodePoints(String data){
+		return this.getCodePoints(data, this.getStartCodeType(data));
+	}
+	
 	public List<Integer> getCodePoints(String data, ECodeType startCodeType){
 		List<Integer> ret = new ArrayList<Integer>();
 		String _data = data;
@@ -232,9 +236,9 @@ public class Code128 extends Barcode {
 	private ECodeType getStartCodeType(String data){
 		if (data.length() >= 2){
 			if (data.charAt(0) >= '0' && data.charAt(0) <= '9' &&
-					data.charAt(1) >= '0' && data.charAt(1) <= '9'){
-					return ECodeType.C;
-				}
+				data.charAt(1) >= '0' && data.charAt(1) <= '9'){
+				return ECodeType.C;
+			}
 		}
 		if (data.charAt(0) <= 0x1f){
 			return ECodeType.A;
@@ -318,7 +322,7 @@ public class Code128 extends Barcode {
 		this.validate(data);
 		this.renderBars(
 				g, 
-				this.getCodePoints(data, this.getStartCodeType(data)),
+				this.getCodePoints(data),
 				r.x + this.marginX, 
 				r.y + this.marginY,
 				w, 
