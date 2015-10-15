@@ -91,16 +91,19 @@ public class Yubin extends Barcode {
 		ret.add(START_PATTERN[1]);
 		for (char c: data.toCharArray()) {
 			Byte[] cp = CODE_POINTS.get(c);
-			if (l + cp.length > MAX_SIZE){
-				break;
-			}
 			for(Byte p: cp){
 				ret.add(CODE_PATTERNS[p][0]);
 				ret.add(CODE_PATTERNS[p][1]);
 				ret.add(CODE_PATTERNS[p][2]);
 				sum_p += p;
+				l++;
+				if (l == MAX_SIZE){
+					break;
+				}
 			}
-			l += cp.length;
+			if (l == MAX_SIZE){
+				break;
+			}
 		}
 		while(l < MAX_SIZE){
 			ret.add(CODE_PATTERNS[14][0]);

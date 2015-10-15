@@ -86,10 +86,11 @@ public class Test {
 			g.fillRect(0, 0, 2000, 3000);
 			{
 				Yubin b = new Yubin();
-				b.render(g, 100, 100, 500, 50, "1234567890-");
-				b.render(g, 100, 400, 650, 50, "ABCDEFGHIJKLMNOPQRST");
-				b.render(g, 100, 700, 800, 50, "UVWXYZ");
-				b.render(g, 100, 1000, 950, 50, "024007315-10-3");
+				b.render(g, 100, 100, 700, 50, "1234567890-");
+				b.render(g, 100, 400, 700, 50, "ABCDEFGHIJKLMNOPQRST");
+				b.render(g, 100, 700, 700, 50, "UVWXYZ");
+				b.render(g, 100, 1000, 700, 50, "024007315-10-3");
+				b.render(g, 100, 1300, 700, 50, "91000673-80-25J1-2B");
 			}
 			{
 				Gs1_128 b = new Gs1_128();
